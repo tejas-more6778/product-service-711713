@@ -26,6 +26,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -50,7 +51,7 @@ public class ProductServiceImpl implements ProductService {
 
 	@Autowired
 	private RestTemplate restTemplate;
-	
+
 	@Autowired
 	private ModelMapper mapper;
 
@@ -267,12 +268,12 @@ public class ProductServiceImpl implements ProductService {
 					}
 					case 1: {
 						double supplierId = cell.getNumericCellValue();
-						productModel.setSupplierId((long)cell.getNumericCellValue());
+						productModel.setSupplierId((long) cell.getNumericCellValue());
 						break;
 					}
 					case 2: {
 						double categoryId = cell.getNumericCellValue();
-						productModel.setCategoryId((long)cell.getNumericCellValue());
+						productModel.setCategoryId((long) cell.getNumericCellValue());
 						break;
 					}
 					case 3: {
@@ -367,15 +368,44 @@ public class ProductServiceImpl implements ProductService {
 
 	@Override
 	public Product_Supplier_Category getProducWthSCtById(long productId) {
+		Product_Supplier_Category psc = null;
 		ProductModel productModel = getProductById(productId);
-		SupplierModel supplierModel=restTemplate.getForObject("http://localhost:8092/supplier/get-supplier-by-id/"+productModel.getSupplierId(), SupplierModel.class);
-		
 
-		CategoryModel categoryModel=restTemplate.getForObject("http://localhost:8093/category/get-category-by-id/"+productModel.getCategoryId(), CategoryModel.class);
-		
-		
-		Product_Supplier_Category psc = new Product_Supplier_Category(productModel,supplierModel,categoryModel);
-		
+		if (productModel != null) {
+			psc = new Product_Supplier_Category();
+			psc.setProductModel(productModel);
+			try {
+				SupplierModel supplierModel = restTemplate.getForObject(
+						"http://localhost:8092/supplier/get-supplier-by-id/" + productModel.getSupplierId(),
+						SupplierModel.class);
+				psc.setSupplierModel(supplierModel);
+
+			} catch (ResourceAccessException e) {
+				psc.setSupplierModel(null);
+			}
+			try {
+				CategoryModel categoryModel = restTemplate.getForObject(
+						"http://localhost:8093/category/get-category-by-id/" + productModel.getCategoryId(),
+						CategoryModel.class);
+				if (categoryModel!=null) {
+					psc.setCategoryModel(categoryModel);  
+					
+				} else {
+					psc.setCategoryModel(null);
+				}
+				
+			} catch (ResourceAccessException e) {
+
+				psc.setCategoryModel(null);
+			}
+
+		} else {
+
+		}
+
+		// Product_Supplier_Category psc = new
+		// Product_Supplier_Category(productModel,supplierModel,categoryModel);
+
 		return psc;
 	}
 
